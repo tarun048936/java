@@ -1,0 +1,81 @@
+public class TimerService extends Service {
+    private static final String TAG = "TimerService";
+    private Timer timer;
+    private boolean isRunning = false;
+    private long startTime = 0;
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent.getAction().equals("START_TIMER")) {
+            startTimer();
+        } else if (intent.getAction().equals("PAUSE_TIMER")) {
+            pauseTimer();
+        } else if (intent.getAction().equals("RESUME_TIMER")) {
+            resumeTimer();
+        }
+        return START_STICKY;
+    }
+
+    private void startTimer() {
+        if (!isRunning) {
+            isRunning = true;
+            startTime = System.currentTimeMillis();
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    long elapsedTime = System.currentTimeMillis() - startTime;
+                    // Update notification with elapsed time
+                    updateNotification(elapsedTime);
+                }
+            }, 0, 1000); // Update every 1 second
+        }
+    }
+
+    private void pauseTimer() {
+        if (isRunning) {
+            isRunning = false;
+            timer.cancel();
+        }
+    }
+
+    private void resumeTimer() {
+        if (!isRunning) {
+            isRunning = true;
+            startTime = System.currentTimeMillis() - startTime;
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    long elapsedTime = System.currentTimeMillis() - startTime;
+                    // Update notification with elapsed time
+                    updateNotification(elapsedTime);
+                }
+            }, 0, 1000); // Update every 1 second
+        }
+    }
+
+    private void updateNotification(long elapsedTime) {
+        // Create or update notification with elapsed time
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+        builder.setSmallIcon(R.drawable.ic_timer);
+        builder.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_timer));
+        builder.setContentTitle("Timer");
+        builder.setContentText(formatElapsedTime(elapsedTime));
+        builder.setOngoing(true);
+        startForeground(1, builder.build());
+    }
+
+    private String formatElapsedTime(long elapsedTime) {
+        // Format elapsed time in HH:MM:SS format
+        long hours = elapsedTime / 3600000;
+        long minutes = (elapsedTime % 3600000) / 60000;
+        long seconds = (elapsedTime % 60000) / 1000;
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+}
